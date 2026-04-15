@@ -32,7 +32,7 @@ function table.tostring(t, maxDepth, indent)
   local writeTable
 
   local function push(text)
-      buffer[#buffer + 1] = text
+    table.insert(buffer, text)
   end
 
   local function isIdentifier(key)
