@@ -12,6 +12,19 @@ local FLAG = 'F'
 local MINE = '*'
 local EMPTY = '.'
 
+local function readAction()
+  while true do
+    io.write('Action (o=open, f=flag): ')
+    local action = io.read()
+
+    if action == 'o' or action == 'f' then
+      return action
+    end
+
+    print('Invalid action. Try again.')
+  end
+end
+
 function Minesweeper.create(config)
   local game = {}
   game.config = config
@@ -33,8 +46,8 @@ end
 function Minesweeper:chooseDifficulty()
   local difficulties = self.config.difficulties
   print('Select difficulty:')
-  for i,d in ipairs(difficulties) do
-    print(i .. ' - ' .. d.name .. ' (' .. d.rows .. 'x' .. d.columns .. ', ' .. d.mines .. ' mines)')
+  for i, difficulty in ipairs(difficulties) do
+    print(string.format("%d - %s (%dx%d, %d mines)", i, difficulty.name, difficulty.rows, difficulty.columns, difficulty.mines))
   end
 
   local choice = readNumber('Choose: ', 1, #difficulties, 'Invalid choice. Try again.')
@@ -84,19 +97,19 @@ function Minesweeper:placeMines(safeRow, safeCol)
   local safeSet = {}
   safeSet[(safeRow - 1) * cols + safeCol] = true
   for i=1,#DIRS do
-    local nr = safeRow + DIRS[i][1]
-    local nc = safeCol + DIRS[i][2]
-    if self:inBounds(nr, nc) then
-      safeSet[(nr - 1) * cols + nc] = true
+    local neighborRow = safeRow + DIRS[i][1]
+    local neighborColumn = safeCol + DIRS[i][2]
+    if self:inBounds(neighborRow, neighborColumn) then
+      safeSet[(neighborRow - 1) * cols + neighborColumn] = true
     end
   end
 
   local placed = 0
   while placed < self.totalMines do
-    local r = math.random(1, rows)
-    local c = math.random(1, cols)
-    if not self.mines[r][c] and not safeSet[(r - 1) * cols + c] then
-      self.mines[r][c] = true
+    local randomRow = math.random(1, rows)
+    local randomColumn = math.random(1, cols)
+    if not self.mines[randomRow][randomColumn] and not safeSet[(randomRow - 1) * cols + randomColumn] then
+      self.mines[randomRow][randomColumn] = true
       placed = placed + 1
     end
   end
@@ -107,9 +120,9 @@ function Minesweeper:placeMines(safeRow, safeCol)
       if not self.mines[r][c] then
         local count = 0
         for i=1,#DIRS do
-          local nr = r + DIRS[i][1]
-          local nc = c + DIRS[i][2]
-          if self:inBounds(nr, nc) and self.mines[nr][nc] then
+          local neighborRow = r + DIRS[i][1]
+          local neighborColumn = c + DIRS[i][2]
+          if self:inBounds(neighborRow, neighborColumn) and self.mines[neighborRow][neighborColumn] then
             count = count + 1
           end
         end
@@ -139,28 +152,36 @@ function Minesweeper:openCell(r, c)
 
   local newlyOpened = {}
   local stack = { {r, c} }
-  while #stack > 0 do
-    local cell = stack[#stack]
-    stack[#stack] = nil
-    local cr = cell[1]
-    local cc = cell[2]
-    if not self.opened[cr][cc] and not self.flagged[cr][cc] then
-      self.opened[cr][cc] = true
-      self.openedCount = self.openedCount + 1
-      newlyOpened[#newlyOpened + 1] = cell
+  local stackSize = 1
 
-      local count = self.counts[cr][cc]
+  while stackSize > 0 do
+    local cell = stack[stackSize]
+    stack[stackSize] = nil
+    stackSize = stackSize - 1
+
+    local currentRow = cell[1]
+    local currentColumn = cell[2]
+
+    if not self.opened[currentRow][currentColumn] and not self.flagged[currentRow][currentColumn] then
+      self.opened[currentRow][currentColumn] = true
+      self.openedCount = self.openedCount + 1
+      table.insert(newlyOpened, cell)
+
+      local count = self.counts[currentRow][currentColumn]
       if count == 0 then
-        self.board:setValue(cr, cc, EMPTY)
+        self.board:setValue(currentRow, currentColumn, EMPTY)
+
         for i=1,#DIRS do
-          local nr = cr + DIRS[i][1]
-          local nc = cc + DIRS[i][2]
-          if self:inBounds(nr, nc) and not self.opened[nr][nc] then
-            stack[#stack + 1] = { nr, nc }
+          local neighborRow = currentRow + DIRS[i][1]
+          local neighborColumn = currentColumn + DIRS[i][2]
+
+          if self:inBounds(neighborRow, neighborColumn) and not self.opened[neighborRow][neighborColumn] then
+            stackSize = stackSize + 1
+            stack[stackSize] = { neighborRow, neighborColumn }
           end
         end
       else
-        self.board:setValue(cr, cc, tostring(count))
+        self.board:setValue(currentRow, currentColumn, tostring(count))
       end
     end
   end
@@ -198,8 +219,7 @@ function Minesweeper:playManual()
     self.board:draw()
     self:drawStatus()
 
-    io.write('Action (o=open, f=flag): ')
-    local action = io.read()
+    local action = readAction()
     local row = readNumber('Row: ', 1, self.rows, 'Invalid row. Try again.')
     local col = readNumber('Column: ', 1, self.columns, 'Invalid column. Try again.')
 

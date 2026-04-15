@@ -2,6 +2,8 @@ require('helpers')
 
 local const = require('const')
 
+math.randomseed(os.time())
+
 function main()
   print('Welcome to Game Platform\n')
 
