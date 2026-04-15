@@ -16,30 +16,23 @@ function Board.create(rows, columns, defaultValue)
   setmetatable(board, {
     __index = Board
   })
-
   return board
 end
 
 function Board:draw()
   local text = ' '
-
   for i=1,self.columns do
     text = text .. ' ' .. tostring(i)
   end
-
   text = text .. '\n'
-
   for i=1,self.rows do
     local row = self.data[i]
     text = text .. tostring(i)
-
     for j=1,#row do
       text = text ..' ' .. row[j]
     end
-
     text = text .. '\n'
   end
-
   print(text)
 end
 
